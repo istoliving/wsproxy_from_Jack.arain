@@ -118,7 +118,7 @@ func (b bufferedConn) Read(p []byte) (int, error) {
 }
 
 func (s *Server) startWSS(ID uint64, bc bufferedConn) {
-	fmt.Println(ID, "* Start tls connection...")
+	fmt.Println(ID, "* Start tls connection", bc.Conn.RemoteAddr())
 
 	// 转换成TLS connection对象.
 	TLSConn := tls.Server(bc, ServerTLSConfig)

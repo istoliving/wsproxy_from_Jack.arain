@@ -1,14 +1,23 @@
 {
-    // 上游服务器列表, 可选项.
+    // 作为local server时使用, 上游服务器列表, 并实现自动负载均衡, 这个是可选项.
+    // 无此选项时, 则作为 remote server 方式运行.
     // 1. 如果有这个Servers项, 则表示这个服务是README.md中的local server.
     // 2. 如果没有Servers列表, 则表示这个是最最终提供代理服务的服务器(即README.md中的remote server)
     "Servers": [ "wss://upstream.server1", "wss://upstream.server1" ],
+
+    // 在 remote server 中使用, 即 README.md 中的 target, 可选项. 如果没有此
+    // 选项, 则直接连接目标服务.
+    // 如果有这个选项, 则表示上游还有代理服务器.
+    "UpstreamProxyServer": "socks5://127.0.0.1:1080",
 
     // 是否验证tls证书.
     "VerifyClientCert": false,
 
     // 服务器监听端口, 用于接受wss或socks5或http proxy连接.
     "ListenAddr": "0.0.0.0:2080",
+
+    // 压缩方法.
+    "Encoding": "zlib",
 
     // Users 代理用户密码表.
     "Users": [

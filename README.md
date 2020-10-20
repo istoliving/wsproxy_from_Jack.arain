@@ -1,12 +1,39 @@
-## 一个支持websocket级联的socks5/http复合代理.
+﻿## 一个支持websocket级联的socks5/http复合代理.
 
 支持在同一个端口同时提供websocket、socks5、http代理服务, 支持通过websocket级联代理.
 
 ```
                  +-------------------+          |         +-------------------+
-  browser/app -> | socks5/http proxy | -> wss --|-- wss ->|-- sock/http proxy |--> target
+  browser/app -> | socks5/http proxy | -> wss --|-- wss ->|  sock/http proxy  |--> target
                  +-------------------+          |         +-------------------+
                      local server              Wall           remote server
+```
+
+或多级代理, 如:
+
+```
+                 +-------------------+     +-------------------+        +-------------------+
+  browser/app -> | socks5/http proxy | --> | sock/http proxy   |------> | socks5/http proxy |--> target
+                 +-------------------+ wss +-------------------+ socks  +-------------------+
+                     local server               remote server              remote server
+```
+
+也可实现多线路负载均衡代理, 如：
+
+```
+                                                  +-------------------+
+                                               +--|  sock/http proxy  |\
+                                               |  +-------------------+
+                                               |
+                 +-------------------+         |  +-------------------+
+  browser/app -> | socks5/http proxy | --> wss +->|  sock/http proxy  |-- target
+                 +-------------------+         |  +-------------------+
+                     local server              |
+                                               |  +-------------------+
+                                               +--|  sock/http proxy  |/
+                                                  +-------------------+
+
+                                                    remote servers
 ```
 
 ## 编译
@@ -23,7 +50,7 @@ go build
 ## 说明
 
 证书文件必须位于程序运行目录的 .wsproxy/certs 下, 统一通过ca.crt签名出server和client证书.
-证书创建可以参考网上教程，如 https://openvpn.net/community-resources/setting-up-your-own-certificate-authority-ca/
+证书创建可以参考网上教程，如 https://openvpn.net/community-resources/setting-up-your-own-certificate-authority-ca/
 
 remote server端用到
 ca.crt

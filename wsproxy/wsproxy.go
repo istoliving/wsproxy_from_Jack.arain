@@ -46,6 +46,9 @@ var (
 	// ServerVerifyClientCert ...
 	ServerVerifyClientCert = false
 
+	// DisableProxy 表示只开启wss服务, 不启用socks5/http proxy服务.
+	DisableProxy = false
+
 	// ServerTLSConfig ...
 	ServerTLSConfig *tls.Config
 
@@ -70,6 +73,7 @@ type Configuration struct {
 	Servers                []string   `json:"Servers"`
 	ServerVerifyClientCert bool       `json:"VerifyClientCert"`
 	Listen                 string     `json:"ListenAddr"`
+	DisableProxy           bool       `json:"DisableProxy"`
 	Users                  []UserInfo `json:"Users"`
 	UpstreamProxyServer    string     `json:"UpstreamProxyServer"`
 	Encoding               string     `json:"Encoding"`
@@ -276,7 +280,7 @@ func (s *Server) handleClientConn(conn *net.TCPConn) {
 		idx = rand.Intn(len(s.config.Servers))
 	}
 
-	if peek[0] == 0x05 {
+	if peek[0] == 0x05 && !DisableProxy {
 		// 如果是socks5协议, 则调用socks5协议库, 若是client模式直接使用tls转发到服务器.
 		if idx >= 0 {
 			// 随机选择一个上游服务器用于转发socks5协议.
@@ -287,7 +291,7 @@ func (s *Server) handleClientConn(conn *net.TCPConn) {
 			StartSocks5Proxy(ID, bc.rw, s.authFunc, reader, writer)
 			fmt.Println(ID, "- Leave socks5 proxy with client:", conn.RemoteAddr())
 		}
-	} else if peek[0] == 0x47 || peek[0] == 0x43 {
+	} else if (peek[0] == 0x47 || peek[0] == 0x43) && !DisableProxy {
 		// 如果'G' 或 'C', 则按http proxy处理, 若是client模式直接使用tls转发到服务器.
 		if idx >= 0 {
 			// 随机选择一个上游服务器用于转发http proxy协议.

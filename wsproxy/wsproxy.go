@@ -394,7 +394,9 @@ func NewServer(serverList []string) *Server {
 
 	s.config = configuration
 	ServerVerifyClientCert = configuration.ServerVerifyClientCert
-	DisableProxy = configuration.DisableProxy
+	if configuration.DisableProxy {
+		DisableProxy = true
+	}
 	Encoding = configuration.Encoding
 
 	fmt.Println(s.config)

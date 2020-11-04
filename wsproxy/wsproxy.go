@@ -15,6 +15,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync/atomic"
 
 	"gitee.com/jackarain/wsproxy/websocket"
@@ -366,6 +367,11 @@ func NewServer(serverList []string) *Server {
 	s := &Server{}
 
 	ConnectionID = 0
+
+	// 在tmp目录下pid目录创建unix domain socket文件.
+	dir := "wsproxy-" + strconv.Itoa(os.Getpid())
+	os.Mkdir(os.TempDir()+"/"+dir, os.ModeDir)
+	UnixSockAddr = dir + "/" + UnixSockAddr
 
 	// open config json file.
 	file, err := os.Open(JSONConfig)

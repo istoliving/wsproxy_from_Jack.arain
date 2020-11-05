@@ -54,6 +54,9 @@ func main() {
 	}
 
 	server := wsproxy.NewServer(nil)
+	if server == nil {
+		return
+	}
 	server.AuthHandleFunc(proxyAuth)
 
 	go server.Start(bindaddr)

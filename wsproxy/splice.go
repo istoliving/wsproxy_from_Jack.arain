@@ -50,7 +50,7 @@ func readFull(r io.Reader) (buf []byte, err error) {
 }
 
 // StartConnectServer ...
-func StartConnectServer(ID uint64, tcpConn *net.TCPConn,
+func StartConnectServer(ID uint64, Verify bool, tcpConn *net.TCPConn,
 	reader *bufio.Reader, writer *bufio.Writer, server string) (insize, tosize int) {
 	defer tcpConn.Close()
 
@@ -64,13 +64,13 @@ func StartConnectServer(ID uint64, tcpConn *net.TCPConn,
 	ca, err := ioutil.ReadFile(caCerts)
 	if err == nil {
 		pool.AppendCertsFromPEM(ca)
-	} else if ServerVerifyClientCert {
+	} else if Verify {
 		fmt.Println(ID, "Open ca file error", err.Error())
 	}
 
 	// 加载客户端证书文件及key.
 	clientCert, err := tls.LoadX509KeyPair(ClientCert, ClientKey)
-	if err != nil && ServerVerifyClientCert {
+	if err != nil && Verify {
 		fmt.Println(ID, "Open client cert file error", err.Error())
 	}
 
@@ -78,7 +78,7 @@ func StartConnectServer(ID uint64, tcpConn *net.TCPConn,
 	tlsConfig := &tls.Config{
 		RootCAs:            pool,
 		Certificates:       []tls.Certificate{clientCert},
-		InsecureSkipVerify: !ServerVerifyClientCert,
+		InsecureSkipVerify: !Verify,
 	}
 
 	// 解析url.

@@ -44,9 +44,6 @@ var (
 	// JSONConfig ...
 	JSONConfig = "config.json"
 
-	// ServerVerifyClientCert ...
-	ServerVerifyClientCert = false
-
 	// DisableProxy 表示只开启wss服务, 不启用socks5/http proxy服务.
 	DisableProxy = false
 
@@ -279,6 +276,7 @@ func (s *Server) handleClientConn(conn *net.TCPConn) {
 	remoteAddr := conn.RemoteAddr()
 	idx := -1
 	server := ""
+	verify := s.config.ServerVerifyClientCert
 
 	if len(s.config.Servers) > 0 {
 		idx = rand.Intn(len(s.config.Servers))
@@ -289,7 +287,7 @@ func (s *Server) handleClientConn(conn *net.TCPConn) {
 		// 如果是socks5协议, 则调用socks5协议库, 若是client模式直接使用tls转发到服务器.
 		if idx >= 0 {
 			// 随机选择一个上游服务器用于转发socks5协议.
-			insize, tosize := StartConnectServer(ID, conn, reader, writer, server)
+			insize, tosize := StartConnectServer(ID, verify, conn, reader, writer, server)
 			fmt.Println(ID, "- Exit proxy with client:", remoteAddr, insize, tosize)
 		} else {
 			// 没有配置上游服务器地址, 直接作为socks5服务器提供socks5服务.
@@ -300,7 +298,7 @@ func (s *Server) handleClientConn(conn *net.TCPConn) {
 		// 如果'G' 或 'C', 则按http proxy处理, 若是client模式直接使用tls转发到服务器.
 		if idx >= 0 {
 			// 随机选择一个上游服务器用于转发http proxy协议.
-			insize, tosize := StartConnectServer(ID, conn, reader, writer, server)
+			insize, tosize := StartConnectServer(ID, verify, conn, reader, writer, server)
 			fmt.Println(ID, "- Exit proxy with client:", remoteAddr, insize, tosize)
 		} else {
 			StartHTTPProxy(ID, bc.rw, s.authFunc, reader, writer)
@@ -340,13 +338,13 @@ func (s *Server) handleUnixConn(conn net.Conn) {
 	fmt.Println(ID, "Exit Unix connection!")
 }
 
-func initTLSServer() {
+func (s *Server) initTLSServer() {
 	// Server ca cert pool.
 	CertPool := x509.NewCertPool()
 	ca, err := ioutil.ReadFile(caCerts)
 	if err == nil {
 		CertPool.AppendCertsFromPEM(ca)
-	} else if ServerVerifyClientCert {
+	} else if s.config.ServerVerifyClientCert {
 		fmt.Println("Open ca file error", err.Error())
 	}
 
@@ -364,12 +362,10 @@ func initTLSServer() {
 
 // NewServer ...
 func NewServer(serverList []string) *Server {
-	// Init tls server.
-	initTLSServer()
-
 	// Make server.
 	s := &Server{}
 
+	// 初始化连接ID.
 	ConnectionID = 0
 
 	// 在tmp目录下pid目录创建unix domain socket文件.
@@ -377,12 +373,12 @@ func NewServer(serverList []string) *Server {
 	os.Mkdir(os.TempDir()+"/"+dir, os.ModeDir)
 	UnixSockAddr = dir + "/" + UnixSockAddr
 
-	// open config json file.
+	// Open config json file.
 	file, err := os.Open(JSONConfig)
 	defer file.Close()
 	if err != nil {
 		fmt.Println("Configuration open error:", err)
-		return s
+		return nil
 	}
 
 	configuration := Configuration{
@@ -393,7 +389,7 @@ func NewServer(serverList []string) *Server {
 	err = decoder.Decode(&configuration)
 	if err != nil {
 		fmt.Println("Configuration decode error:", err)
-		return s
+		return nil
 	}
 
 	// 添加到Users容器中.
@@ -403,7 +399,6 @@ func NewServer(serverList []string) *Server {
 	}
 
 	s.config = configuration
-	ServerVerifyClientCert = configuration.ServerVerifyClientCert
 	if configuration.DisableProxy {
 		DisableProxy = true
 	}
@@ -411,6 +406,8 @@ func NewServer(serverList []string) *Server {
 
 	fmt.Println(s.config)
 
+	// Init tls server.
+	s.initTLSServer()
 	return s
 }
 
